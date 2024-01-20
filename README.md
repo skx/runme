@@ -8,6 +8,8 @@ Given the following code-block you'll see three things:
 uptime
 ```
 
+> **NOTE**: If you're viewing this file on github you'll need to select the [RAW View](https://raw.githubusercontent.com/skx/runme/master/README.md) to see the markup.
+
 The block has:
 
 * A shell defined.
