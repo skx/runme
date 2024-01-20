@@ -14,21 +14,24 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
-func main() {
+var (
+	nameArg  *string
+	shellArg *string
+	keepArg  *bool
+	runArg   *bool
+)
 
-	// Parse arguments
-	nameArg := flag.String("name", "", "Match only blocks with the specified name")
-	shellArg := flag.String("shell", "", "Match only blocks with the specified shell")
-	keepArg := flag.Bool("keep", false, "Keep the temporary files we created")
-	runArg := flag.Bool("run", false, "Run the matching block(s)")
-	flag.Parse()
+// Process the given file
+func process(file string) {
 
-	content, err := os.ReadFile("README.md")
+	// Read the file
+	content, err := os.ReadFile(file)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Print("Error reading %s:%s\n", file, err)
 		return
 	}
 
+	// Create the new helper
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
 		goldmark.WithParserOptions(
@@ -52,7 +55,7 @@ func main() {
 		switch n := n.(type) {
 		case *ast.FencedCodeBlock:
 
-			// See if the block has an info-node
+			// If the block has no info-node then return
 			if n.Info == nil {
 				return ast.WalkContinue, nil
 			}
@@ -96,11 +99,12 @@ func main() {
 			// Default to not skipping.
 			skip := false
 
+			// But if we have either filter then we must skip unless we have a match
 			if *shellArg != "" || *nameArg != "" {
 				skip = true
 			}
 
-			// Show some debugging
+			// Matching name/shell?
 			if shll == *shellArg {
 				skip = false
 			}
@@ -108,7 +112,10 @@ func main() {
 				skip = false
 			}
 
+			// OK we're not skipping
 			if !skip {
+
+				// are we running?
 				if *runArg {
 
 					// Create a temporary file
@@ -152,5 +159,27 @@ func main() {
 		}
 	})
 
-	// At this point we've got a list
+}
+
+func main() {
+
+	// setup the flags
+	nameArg = flag.String("name", "", "Match only blocks with the specified name")
+	shellArg = flag.String("shell", "", "Match only blocks with the specified shell")
+	keepArg = flag.Bool("keep", false, "Keep the temporary files we created")
+	runArg = flag.Bool("run", false, "Run the matching block(s)")
+
+	// Parse the arguments
+	flag.Parse()
+
+	// Ensure we have a list of files.
+	if len(flag.Args()) < 1 {
+		fmt.Printf("Usage: runme [args] file1.md file2.md ..\n")
+		return
+	}
+
+	// Process each one
+	for _, file := range flag.Args() {
+		process(file)
+	}
 }
