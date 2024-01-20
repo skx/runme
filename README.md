@@ -51,7 +51,9 @@ You can filter the output to only show blocks with a given shell, or name via th
 * `runme --name test`
   * Show only blocks with the given name.
 * `runme --shell bash`
-  * Show only bash-scripts.
+  * Show only scripts using the given shell.
+  * **NOTE** To ease real-life usage we use "contains" here, rather than equals as we do for the name.
+    * This means "bash" matches "/bin/bash", and "sh" will match both "/bin/bash" and "/bin/sh".
 
 
 

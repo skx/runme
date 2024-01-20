@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -15,10 +16,18 @@ import (
 )
 
 var (
-	nameArg  *string
+
+	//nameArg - Match only blocks with the given name
+	nameArg *string
+
+	// shellArg - Match only blocks with the given shell.
 	shellArg *string
-	keepArg  *bool
-	runArg   *bool
+
+	// keepArg - If true don't delete the temporary file we create.
+	keepArg *bool
+
+	// runArg - If true run matching blocks
+	runArg *bool
 )
 
 // Process the given file
@@ -105,7 +114,7 @@ func process(file string) {
 			}
 
 			// Matching name/shell?
-			if shll == *shellArg {
+			if strings.Contains(shll, *shellArg) {
 				skip = false
 			}
 			if name == *nameArg {
@@ -113,45 +122,50 @@ func process(file string) {
 			}
 
 			// OK we're not skipping
-			if !skip {
+			if skip {
+				return ast.WalkContinue, nil
+			}
 
-				// are we running?
-				if *runArg {
+			// are we running?
+			if *runArg {
 
-					// Create a temporary file
-					file, err := os.CreateTemp(os.TempDir(), "rm")
-					if err != nil {
-						fmt.Printf("error writing temporary file %s\n", err.Error())
-						return ast.WalkContinue, nil
-					}
-
-					// ensure we cleanup
-					if *keepArg {
-						fmt.Printf("wrote to %s\n", file.Name())
-					} else {
-						defer os.Remove(file.Name())
-					}
-
-					// Write the shebang + contents
-					file.WriteString("#!" + shll + "\n" + buf.String())
-					file.Close()
-
-					// Make it executable
-					_ = os.Chmod(file.Name(), 0755)
-
-					// Execute the newly created file.
-					cmd, err := exec.Command("/bin/sh", "-c", file.Name()).Output()
-					if err != nil {
-						fmt.Printf("error executing temporary file %s [shell:%s block:%s]", err, shll, name)
-						return ast.WalkContinue, nil
-					}
-
-					// Show the output
-					fmt.Printf("%s\n", cmd)
-				} else {
-					fmt.Printf("Shell:%s  Name:%s\n", shll, name)
-					fmt.Printf("%s\n", buf.String())
+				// Create a temporary file
+				file, err := os.CreateTemp(os.TempDir(), "rm")
+				if err != nil {
+					fmt.Printf("error writing temporary file %s\n", err.Error())
+					return ast.WalkContinue, nil
 				}
+
+				// ensure we cleanup
+				if *keepArg {
+					fmt.Printf("wrote to %s\n", file.Name())
+				} else {
+					defer os.Remove(file.Name())
+				}
+
+				// Write the shebang + contents
+				file.WriteString("#!" + shll + "\n" + buf.String())
+				file.Close()
+
+				// Make it executable
+				_ = os.Chmod(file.Name(), 0755)
+
+				// Execute the newly created file.
+				cmd, err := exec.Command("/bin/sh", "-c", file.Name()).Output()
+				if err != nil {
+					fmt.Printf("error executing temporary file %s [shell:%s block:%s]", err, shll, name)
+					return ast.WalkContinue, nil
+				}
+
+				// Show the output
+				if len(cmd) > 0 {
+					fmt.Printf("%s", cmd)
+				} else {
+					fmt.Printf("[no output]\n")
+				}
+			} else {
+				fmt.Printf("Shell:%s  Name:%s\n", shll, name)
+				fmt.Printf("%s\n", buf.String())
 			}
 			return ast.WalkContinue, nil
 		default:
