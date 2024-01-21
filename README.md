@@ -117,13 +117,17 @@ wrote to /tmp/rm1802985270
 uid=1000(skx) gid=1000(skx) groups=1000(skx),24(cdrom),25(floppy),27(sudo),29(audio),30(dip),44(video),46(plugdev),108(netdev),113(bluetooth),114(lpadmin),118(scanner),133(uml-net),999(docker)
 
 $ cat /tmp/rm1802985270
-
-
-
-
 #!/bin/bash
-
 uptime
-
 id
 ```
+
+## Github Setup
+
+This repository is configured to run tests upon every commit, and when
+pull-requests are created/updated.  The testing is carried out via
+[.github/run-tests.sh](.github/run-tests.sh) which is used by the
+[github-action-tester](https://github.com/skx/github-action-tester) action.
+
+Releases are automated in a similar fashion via [.github/build](.github/build),
+and the [github-action-publish-binaries](https://github.com/skx/github-action-publish-binaries) action.
