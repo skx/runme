@@ -1,3 +1,5 @@
+// package main contains a simple CLI tool to execute/list shell-blocks
+// from within markdown files.
 package main
 
 import (
@@ -23,9 +25,6 @@ var (
 	// shellArg - Match only blocks with the given shell.
 	shellArg *string
 
-	// combineArg - If true then combine all the matching blocks into one.
-	combineArg *bool
-
 	// joinArg - If true write all blocks to one file.
 	joinArg *bool
 
@@ -46,6 +45,16 @@ type CodeBlock struct {
 
 	// Content is the code within the block
 	Content string
+}
+
+// fileExists tests if the given file exists.
+func fileExists(path string) bool {
+
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
 
 // parseBlocks reads the the given file and returns a structure
@@ -173,6 +182,48 @@ func filterBlocks(in []CodeBlock) []CodeBlock {
 	return res
 }
 
+// executeBlock writes the given content to a temporary file, and executes it.
+//
+// If `--keep` is specified the name of the file will be shown, and it will be
+// left in-place.  Otherwise it will be removed.
+func executeBlock(block CodeBlock) error {
+
+	// Create a temporary file
+	file, err := os.CreateTemp(os.TempDir(), "rm")
+	if err != nil {
+		return fmt.Errorf("error creating temporary file %s", err)
+	}
+
+	// ensure we cleanup
+	if *keepArg {
+		fmt.Printf("wrote to %s\n", file.Name())
+	} else {
+		defer os.Remove(file.Name())
+	}
+
+	// Write the shebang + contents
+	file.WriteString("#!" + block.Shell + "\n" + block.Content)
+	file.Close()
+
+	// Make it executable
+	_ = os.Chmod(file.Name(), 0755)
+
+	// Execute the newly created file.
+	cmd, err := exec.Command("/bin/sh", "-c", file.Name()).Output()
+	if err != nil {
+		return fmt.Errorf("error executing temporary file %s [shell:%s block:%s]", err, block.Shell, block.Name)
+	}
+
+	// Show the output
+	if len(cmd) > 0 {
+		fmt.Printf("%s", cmd)
+	} else {
+		fmt.Printf("[no output]\n")
+	}
+
+	return nil
+}
+
 func main() {
 
 	// setup the flags - strings
@@ -181,20 +232,28 @@ func main() {
 
 	// setup the flags - bools
 	joinArg = flag.Bool("join", false, "Join all matching blocks into one run")
-	keepArg = flag.Bool("keep", false, "Keep the temporary files we created")
+	keepArg = flag.Bool("keep", false, "Keep and display the names of any temporary files created")
 	runArg = flag.Bool("run", false, "Run the matching block(s)")
 
 	// Parse the arguments
 	flag.Parse()
 
+	// Files we are given as arguments
+	files := flag.Args()
+
 	// Ensure we have a list of files.
-	if len(flag.Args()) < 1 {
-		fmt.Printf("Usage: runme [args] file1.md file2.md ..\n")
-		return
+	if len(files) < 1 {
+
+		if fileExists("README.md") {
+			files = append(files, "README.md")
+		} else {
+			fmt.Printf("Usage: runme [args] file1.md file2.md ..\n")
+			return
+		}
 	}
 
 	// Process each file
-	for _, file := range flag.Args() {
+	for _, file := range files {
 
 		// Get the blocks from within the file
 		blocks, err := parseBlocks(file)
@@ -215,45 +274,48 @@ func main() {
 			if !*runArg {
 				fmt.Printf("Shell:%s  Name:%s\n", block.Shell, block.Name)
 				fmt.Printf("%s\n", block.Content)
+				continue
 			}
 
 			//
 			// Running here
 			//
 
-			// Create a temporary file
-			file, err := os.CreateTemp(os.TempDir(), "rm")
-			if err != nil {
-				fmt.Printf("error writing temporary file %s\n", err.Error())
+			//
+			// We're either running each block separately, or together
+			//
+			if *joinArg {
+
+				//
+				// Here we're going to make a "super-block", which
+				// will contain the content of each of the children
+				//
+				all := ""
+
+				for _, b := range blocks {
+					all += "\n"
+					all += b.Content
+				}
+
+				b := CodeBlock{
+					Name:    block.Name,
+					Shell:   block.Shell,
+					Content: all,
+				}
+
+				err := executeBlock(b)
+				if err != nil {
+					fmt.Printf("error running block:%s\n", err.Error())
+				}
+
+				// Return here so we break out of the parent loop
 				return
 			}
 
-			// ensure we cleanup
-			if *keepArg {
-				fmt.Printf("wrote to %s\n", file.Name())
-			} else {
-				defer os.Remove(file.Name())
-			}
-
-			// Write the shebang + contents
-			file.WriteString("#!" + block.Shell + "\n" + block.Content)
-			file.Close()
-
-			// Make it executable
-			_ = os.Chmod(file.Name(), 0755)
-
-			// Execute the newly created file.
-			cmd, err := exec.Command("/bin/sh", "-c", file.Name()).Output()
+			// Just run the single block
+			err := executeBlock(block)
 			if err != nil {
-				fmt.Printf("error executing temporary file %s [shell:%s block:%s]", err, block.Shell, block.Name)
-				return
-			}
-
-			// Show the output
-			if len(cmd) > 0 {
-				fmt.Printf("%s", cmd)
-			} else {
-				fmt.Printf("[no output]\n")
+				fmt.Printf("error running block:%s\n", err.Error())
 			}
 		}
 	}
