@@ -3,7 +3,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/text"
 )
 
@@ -43,7 +41,7 @@ type CodeBlock struct {
 	Name string
 
 	// Content is the content held within the block.
-	Content string
+	Content []string
 }
 
 // fileExists tests if the given file exists.
@@ -71,7 +69,7 @@ func parseBlocks(file string) ([]CodeBlock, error) {
 
 	// Create the new helper
 	md := goldmark.New(
-		goldmark.WithExtensions(extension.GFM),
+		goldmark.WithExtensions(),
 		goldmark.WithParserOptions(),
 	)
 
@@ -103,11 +101,11 @@ func parseBlocks(file string) ([]CodeBlock, error) {
 			info := segment.Value(reader.Source())
 
 			// Now get the body of the block
-			var buf bytes.Buffer
+			content := []string{}
 			lines := n.Lines()
 			for i := 0; i < lines.Len(); i++ {
 				line := lines.At(i)
-				buf.Write(line.Value(reader.Source()))
+				content = append(content, string(line.Value(reader.Source())))
 			}
 
 			// Save the shell and name here.
@@ -134,7 +132,7 @@ func parseBlocks(file string) ([]CodeBlock, error) {
 				res = append(res, CodeBlock{
 					Name:    name,
 					Shell:   shll,
-					Content: buf.String(),
+					Content: content,
 				})
 			}
 		}
@@ -196,7 +194,7 @@ func executeBlock(block CodeBlock) error {
 	}
 
 	// Write the shebang + contents
-	file.WriteString("#!" + block.Shell + "\n" + block.Content)
+	file.WriteString("#!" + block.Shell + "\n" + strings.Join(block.Content, "\n"))
 	file.Close()
 
 	// Make it executable
@@ -266,8 +264,11 @@ func main() {
 
 			// If we're not running we just show the details
 			if !*runArg {
-				fmt.Printf("Shell:%s  Name:%s\n", block.Shell, block.Name)
-				fmt.Printf("%s\n", block.Content)
+				fmt.Printf("Shell:%s Name:%s Lines:%d\n", block.Shell, block.Name, len(block.Content))
+				for _, l := range block.Content {
+					fmt.Printf("\t%s", l)
+				}
+				fmt.Printf("\n")
 				continue
 			}
 
@@ -284,19 +285,30 @@ func main() {
 				// Here we're going to make a "super-block", which
 				// will contain the content of each of the children
 				//
-				all := ""
+				var all []string
 
+				//
+				// For each block join the command-lines into a big
+				// list.
+				//
 				for _, b := range blocks {
-					all += "\n"
-					all += b.Content
+					all = append(all, b.Content...)
 				}
 
+				//
+				// Create a fake code-block with those lines, and the
+				// first shell/name.
+				//
+				// NOTE: We should probably check that they all use the same
+				// shell, otherwise merging might be bad.
+				//
 				b := CodeBlock{
 					Name:    block.Name,
 					Shell:   block.Shell,
 					Content: all,
 				}
 
+				// Execute
 				err := executeBlock(b)
 				if err != nil {
 					fmt.Printf("error running block:%s\n", err.Error())

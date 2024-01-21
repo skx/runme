@@ -8,8 +8,8 @@ import (
 func TestFilteringNop(t *testing.T) {
 
 	in := []CodeBlock{
-		CodeBlock{Name: "steve", Shell: "sh", Content: "steve"},
-		CodeBlock{Name: "steve2", Shell: "sh2", Content: "steve2"},
+		CodeBlock{Name: "steve", Shell: "sh", Content: []string{"steve"}},
+		CodeBlock{Name: "steve2", Shell: "sh2", Content: []string{"steve2"}},
 	}
 
 	sh := ""
@@ -28,8 +28,8 @@ func TestFilteringNop(t *testing.T) {
 func TestFilteringName(t *testing.T) {
 
 	in := []CodeBlock{
-		CodeBlock{Name: "steve", Shell: "sh", Content: "steve"},
-		CodeBlock{Name: "steve2", Shell: "sh2", Content: "steve2"},
+		CodeBlock{Name: "steve", Shell: "sh", Content: []string{"steve"}},
+		CodeBlock{Name: "steve2", Shell: "sh2", Content: []string{"steve2"}},
 	}
 
 	sh := ""
@@ -42,7 +42,7 @@ func TestFilteringName(t *testing.T) {
 	if len(out) != 1 {
 		t.Fatalf("unexepected filtering")
 	}
-	if out[0].Content != "steve" {
+	if out[0].Content[0] != "steve" {
 		t.Fatalf("wrong filtering")
 	}
 	if out[0].Shell != "sh" {
@@ -54,8 +54,8 @@ func TestFilteringName(t *testing.T) {
 func TestFilteringShell(t *testing.T) {
 
 	in := []CodeBlock{
-		CodeBlock{Name: "steve", Shell: "/bin/bash", Content: "steve"},
-		CodeBlock{Name: "steve2", Shell: "/bin/sh", Content: "steve2"},
+		CodeBlock{Name: "steve", Shell: "/bin/bash", Content: []string{"steve"}},
+		CodeBlock{Name: "steve2", Shell: "/bin/sh", Content: []string{"steve2"}},
 	}
 
 	sh := "bash"
@@ -68,7 +68,7 @@ func TestFilteringShell(t *testing.T) {
 	if len(out) != 1 {
 		t.Fatalf("unexepected filtering")
 	}
-	if out[0].Content != "steve" {
+	if out[0].Content[0] != "steve" {
 		t.Fatalf("wrong filtering")
 	}
 	if out[0].Shell != "/bin/bash" {
