@@ -84,8 +84,9 @@ func TestParser(t *testing.T) {
 		t.Fatalf("unexpected error parsing README.md")
 	}
 
-	if len(x) != 3 {
-		t.Fatalf("got %d blocks, expected 3", len(x))
+	expected := 2
+	if len(x) != expected {
+		t.Fatalf("got %d blocks, expected %d", len(x), expected)
 	}
 
 	_, err = parseBlocks("README.md.missing")
