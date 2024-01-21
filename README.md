@@ -2,7 +2,7 @@
 
 `runme` is a simple tool which allows you to list, and execute, commands which are embedded as code-blocks within markdown files.
 
-NOTE: We wrap code blocks with "````" so that when viewing this file on github.com we see the markup, however that is just a niceness thing for readers - only three backticks are required, as you'd expect.
+* **NOTE**: We process fenced-codeblocks, which will make more sense if you view the [RAW version of this file](https://raw.githubusercontent.com/skx/runme/master/README.md).
 
 
 
@@ -13,6 +13,10 @@ Assuming you have the golang toolchain installed you can install the latest vers
 ```/bin/sh install-runme
 go install github.com/skx/runme@latest
 ```
+
+If you don't have the toolchain installed, or prefer to fetch a binary, you can download the latest release from the release page:
+
+* https://github.com/skx/runme/releases
 
 
 
@@ -28,20 +32,16 @@ In the following code-block you'll see three things:
    * `uptime` in this case.
 
 
-````
 ```/bin/bash test
 uptime
 ```
-````
 
 Another block might use the python3 interpreter, by specifying the path to `python3`:
 
-````
 ```/usr/bin/python3 home
 import os
 print(os.environ['HOME'])
 ```
-````
 
 Finally for testing this tool, we can provide another shell block configured with `bash` as the interpreter:
 
@@ -115,12 +115,13 @@ $ ./runme --shell bash --join --run --keep README.md
 wrote to /tmp/rm1802985270
  12:44:56 up 47 days, 18:36,  1 user,  load average: 0.27, 0.24, 0.19
 uid=1000(skx) gid=1000(skx) groups=1000(skx),24(cdrom),25(floppy),27(sudo),29(audio),30(dip),44(video),46(plugdev),108(netdev),113(bluetooth),114(lpadmin),118(scanner),133(uml-net),999(docker)
-
 $ cat /tmp/rm1802985270
 #!/bin/bash
 uptime
 id
 ```
+
+
 
 ## Github Setup
 
