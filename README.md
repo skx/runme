@@ -1,6 +1,8 @@
 # runme - A simple markdown extractor
 
-`runme` is a simple tool which allows you to list, and execute commands which are embedded as code-blocks within markdown files.
+`runme` is a simple tool which allows you to list, and execute, commands which are embedded as code-blocks within markdown files.
+
+NOTE: We wrap code blocks with `````` so that when viewing this file on github.com we see the markup, however that is just a niceness thing for readers - only three backticks are required, as you'd expect.
 
 
 
@@ -16,7 +18,15 @@ go install github.com/skx/runme@latest
 
 ## Overview
 
-Given the following code-block you'll see three things:
+In the following code-block you'll see three things:
+
+* A shell has been defined for the code-block.
+   * `/bin/bash` in this case
+* The block has been given a name.
+   * `test` in this case.
+* A command, or series of commands, to execute has been listed.
+   * `uptime` in this case.
+
 
 ````
 ```/bin/bash test
@@ -24,25 +34,16 @@ uptime
 ```
 ````
 
-> **NOTE**: If you're viewing this file on github you'll need to select the [RAW View](https://raw.githubusercontent.com/skx/runme/master/README.md) to see the markup.
+Another block might use the python3 interpreter, by specifying the path to `python3`:
 
-The block has:
-
-* A shell defined.
-   * `/bin/bash` in this case
-* A name defined.
-   * `test` in this case.
-* A command, or series of commands to execute.
-   * `uptime` in this case.
-
-Another block might use python3:
-
+````
 ```/usr/bin/python3 home
 import os
 print(os.environ['HOME'])
 ```
+````
 
-Finally to test running all blocks, as one script, we can have another shell block:
+Finally for testing this tool, we can provide another shell block configured with `bash` as the interpreter:
 
 ```/bin/bash whoami
 id
