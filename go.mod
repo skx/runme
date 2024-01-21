@@ -1,4 +1,4 @@
-module runme
+module github.com/skx/runme
 
 go 1.21.1
 
