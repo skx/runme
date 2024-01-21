@@ -1,12 +1,28 @@
 # runme - A simple markdown extractor
 
-This is a simple project which allows you to list, extract, and execute commands from markdown files.
+`runme` is a simple tool which allows you to list, and execute commands which are embedded as code-blocks within markdown files.
+
+
+
+## Installation
+
+Assuming you have the golang toolchain installed you can install the latest version of the utility by running:
+
+```/bin/sh install-runme
+go install github.com/skx/runme@latest
+```
+
+
+
+## Overview
 
 Given the following code-block you'll see three things:
 
+````
 ```/bin/bash test
 uptime
 ```
+````
 
 > **NOTE**: If you're viewing this file on github you'll need to select the [RAW View](https://raw.githubusercontent.com/skx/runme/master/README.md) to see the markup.
 
