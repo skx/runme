@@ -23,6 +23,9 @@ var (
 	// shellArg - Match only blocks with the given shell.
 	shellArg *string
 
+	// combineArg - If true then combine all the matching blocks into one.
+	combineArg *bool
+
 	// keepArg - If true don't delete the temporary file we create.
 	keepArg *bool
 
@@ -30,14 +33,29 @@ var (
 	runArg *bool
 )
 
-// Process the given file
-func process(file string) {
+// CodeBlock holds the details for each code-block within a given file.
+type CodeBlock struct {
+	// Shell is the defined shell for this block
+	Shell string
+
+	// Name is the name of the block
+	Name string
+
+	// Content is the code within the block
+	Content string
+}
+
+// Process the given file, which means finding and returning all the codeblocks
+// within the content.
+func process(file string) ([]CodeBlock, error) {
+
+	// Result we return to the caller
+	var res []CodeBlock
 
 	// Read the file
 	content, err := os.ReadFile(file)
 	if err != nil {
-		fmt.Print("Error reading %s:%s\n", file, err)
-		return
+		return res, fmt.Errorf("error reading input %s: %s", file, err)
 	}
 
 	// Create the new helper
@@ -48,10 +66,10 @@ func process(file string) {
 		),
 	)
 
-	// Create a reader
+	// Create a reader for processing the content.
 	reader := text.NewReader(content)
 
-	// and a parser
+	// Create the parser object
 	doc := md.Parser().Parse(reader)
 
 	// Walk the AST of the parser.
@@ -100,72 +118,13 @@ func process(file string) {
 			}
 
 			// Skip this block if we're missing either a shell, or a name
-			if shll == "" || name == "" {
-				return ast.WalkContinue, nil
-			}
+			if shll != "" && name != "" {
 
-			// Should we skip this block?
-			// Default to not skipping.
-			skip := false
-
-			// But if we have either filter then we must skip unless we have a match
-			if *shellArg != "" || *nameArg != "" {
-				skip = true
-			}
-
-			// Matching name/shell?
-			if strings.Contains(shll, *shellArg) {
-				skip = false
-			}
-			if name == *nameArg {
-				skip = false
-			}
-
-			// OK we're not skipping
-			if skip {
-				return ast.WalkContinue, nil
-			}
-
-			// are we running?
-			if *runArg {
-
-				// Create a temporary file
-				file, err := os.CreateTemp(os.TempDir(), "rm")
-				if err != nil {
-					fmt.Printf("error writing temporary file %s\n", err.Error())
-					return ast.WalkContinue, nil
-				}
-
-				// ensure we cleanup
-				if *keepArg {
-					fmt.Printf("wrote to %s\n", file.Name())
-				} else {
-					defer os.Remove(file.Name())
-				}
-
-				// Write the shebang + contents
-				file.WriteString("#!" + shll + "\n" + buf.String())
-				file.Close()
-
-				// Make it executable
-				_ = os.Chmod(file.Name(), 0755)
-
-				// Execute the newly created file.
-				cmd, err := exec.Command("/bin/sh", "-c", file.Name()).Output()
-				if err != nil {
-					fmt.Printf("error executing temporary file %s [shell:%s block:%s]", err, shll, name)
-					return ast.WalkContinue, nil
-				}
-
-				// Show the output
-				if len(cmd) > 0 {
-					fmt.Printf("%s", cmd)
-				} else {
-					fmt.Printf("[no output]\n")
-				}
-			} else {
-				fmt.Printf("Shell:%s  Name:%s\n", shll, name)
-				fmt.Printf("%s\n", buf.String())
+				res = append(res, CodeBlock{
+					Name:    name,
+					Shell:   shll,
+					Content: buf.String(),
+				})
 			}
 			return ast.WalkContinue, nil
 		default:
@@ -173,6 +132,7 @@ func process(file string) {
 		}
 	})
 
+	return res, nil
 }
 
 func main() {
@@ -194,6 +154,80 @@ func main() {
 
 	// Process each one
 	for _, file := range flag.Args() {
-		process(file)
+
+		// Get the blocks from within the file
+		blocks, err := process(file)
+
+		// If there were errors we're done
+		if err != nil {
+			fmt.Printf("%s\n", err.Error())
+			return
+		}
+
+		for _, block := range blocks {
+
+			// Should we skip this block?
+			skip := true
+
+			// If the filters are both empty then we don't skip it.
+			if *shellArg == "" && *nameArg == "" {
+				skip = false
+			}
+
+			// Matching name/shell?
+			if *shellArg != "" && strings.Contains(block.Shell, *shellArg) {
+				skip = false
+			}
+			if *nameArg != "" && block.Name == *nameArg {
+				skip = false
+			}
+
+			// OK we're skipping this block
+			if skip {
+				continue
+			}
+
+			// are we running?
+			if *runArg {
+
+				// Create a temporary file
+				file, err := os.CreateTemp(os.TempDir(), "rm")
+				if err != nil {
+					fmt.Printf("error writing temporary file %s\n", err.Error())
+					return
+				}
+
+				// ensure we cleanup
+				if *keepArg {
+					fmt.Printf("wrote to %s\n", file.Name())
+				} else {
+					defer os.Remove(file.Name())
+				}
+
+				// Write the shebang + contents
+				file.WriteString("#!" + block.Shell + "\n" + block.Content)
+				file.Close()
+
+				// Make it executable
+				_ = os.Chmod(file.Name(), 0755)
+
+				// Execute the newly created file.
+				cmd, err := exec.Command("/bin/sh", "-c", file.Name()).Output()
+				if err != nil {
+					fmt.Printf("error executing temporary file %s [shell:%s block:%s]", err, block.Shell, block.Name)
+					return
+				}
+
+				// Show the output
+				if len(cmd) > 0 {
+					fmt.Printf("%s", cmd)
+				} else {
+					fmt.Printf("[no output]\n")
+				}
+			} else {
+				fmt.Printf("Shell:%s  Name:%s\n", block.Shell, block.Name)
+				fmt.Printf("%s\n", block.Content)
+			}
+		}
 	}
 }
