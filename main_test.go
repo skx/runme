@@ -88,7 +88,7 @@ func TestParser(t *testing.T) {
 		t.Fatalf("got %d blocks, expected 3", len(x))
 	}
 
-	x, err = parseBlocks("README.md.missing")
+	_, err = parseBlocks("README.md.missing")
 	if err == nil {
 		t.Fatalf("expected error, but got none")
 	}

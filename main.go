@@ -13,7 +13,6 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 )
 
@@ -37,13 +36,13 @@ var (
 
 // CodeBlock holds the details for each code-block within a given file.
 type CodeBlock struct {
-	// Shell is the defined shell for this block
+	// Shell is the defined shell for this block.
 	Shell string
 
-	// Name is the name of the block
+	// Name is the name of the block.
 	Name string
 
-	// Content is the code within the block
+	// Content is the content held within the block.
 	Content string
 }
 
@@ -57,7 +56,7 @@ func fileExists(path string) bool {
 	return !info.IsDir()
 }
 
-// parseBlocks reads the the given file and returns a structure
+// parseBlocks reads the given file and returns a structure
 // containing each of the fenced code-blocks.
 func parseBlocks(file string) ([]CodeBlock, error) {
 
@@ -73,9 +72,7 @@ func parseBlocks(file string) ([]CodeBlock, error) {
 	// Create the new helper
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
-		goldmark.WithParserOptions(
-			parser.WithAutoHeadingID(),
-		),
+		goldmark.WithParserOptions(),
 	)
 
 	// Create a reader for processing the content.
@@ -85,15 +82,17 @@ func parseBlocks(file string) ([]CodeBlock, error) {
 	doc := md.Parser().Parse(reader)
 
 	// Walk the AST of the parser.
-	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+	ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
 
-		// We only care about code blocks
-		switch n := n.(type) {
-		case *ast.FencedCodeBlock:
+		// See if this is a FencedCodeBlock, as that is
+		// the only node type we care about.
+		n, ok := node.(*ast.FencedCodeBlock)
 
+		// OK it is.
+		if ok {
 			// If the block has no info-node then return
 			if n.Info == nil {
 				return ast.WalkContinue, nil
@@ -138,10 +137,8 @@ func parseBlocks(file string) ([]CodeBlock, error) {
 					Content: buf.String(),
 				})
 			}
-			return ast.WalkContinue, nil
-		default:
-			return ast.WalkContinue, nil
 		}
+		return ast.WalkContinue, nil
 	})
 
 	return res, nil
@@ -151,7 +148,7 @@ func parseBlocks(file string) ([]CodeBlock, error) {
 // returns the results of filtering those blocks
 func filterBlocks(in []CodeBlock) []CodeBlock {
 
-	// No filters?  Return them all
+	// No filters?  All blocks are fine, as-is.
 	if *nameArg == "" && *shellArg == "" {
 		return in
 	}
@@ -173,9 +170,6 @@ func filterBlocks(in []CodeBlock) []CodeBlock {
 		// Matching shell?
 		if *shellArg != "" && strings.Contains(block.Shell, *shellArg) {
 			res = append(res, block)
-
-			// Only add once, even if it matches name AND shell
-			continue
 		}
 	}
 
