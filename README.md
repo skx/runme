@@ -2,7 +2,7 @@
 
 `runme` is a simple tool which allows you to list, and execute, commands which are embedded as code-blocks within markdown files.
 
-NOTE: We wrap code blocks with `````` so that when viewing this file on github.com we see the markup, however that is just a niceness thing for readers - only three backticks are required, as you'd expect.
+NOTE: We wrap code blocks with "````" so that when viewing this file on github.com we see the markup, however that is just a niceness thing for readers - only three backticks are required, as you'd expect.
 
 
 
