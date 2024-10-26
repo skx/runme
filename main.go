@@ -80,7 +80,7 @@ func parseBlocks(file string) ([]CodeBlock, error) {
 	doc := md.Parser().Parse(reader)
 
 	// Walk the AST of the parser.
-	ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+	err = ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
@@ -139,7 +139,7 @@ func parseBlocks(file string) ([]CodeBlock, error) {
 		return ast.WalkContinue, nil
 	})
 
-	return res, nil
+	return res, err
 }
 
 // filterBlocks takes the list of fenced code blocks and
@@ -194,7 +194,11 @@ func executeBlock(block CodeBlock) error {
 	}
 
 	// Write the shebang + contents
-	file.WriteString("#!" + block.Shell + "\n" + strings.Join(block.Content, "\n"))
+	_, err = file.WriteString("#!" + block.Shell + "\n" + strings.Join(block.Content, "\n"))
+	if err != nil {
+		return fmt.Errorf("error writing to temporary file %s:%s", file.Name(), err)
+	}
+
 	file.Close()
 
 	// Make it executable
