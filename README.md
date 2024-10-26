@@ -2,17 +2,14 @@
 
 `runme` is a simple tool which allows you to list, and execute, commands which are embedded as code-blocks within markdown files.
 
-* **NOTE**: We process fenced-codeblocks, which will make more sense if you view the [RAW version of this file](https://raw.githubusercontent.com/skx/runme/master/README.md).
-
-
 
 ## Installation
 
 Assuming you have the golang toolchain installed you can install the latest version of the utility by running:
 
-```/bin/sh install-runme
-go install github.com/skx/runme@latest
-```
+    ```/bin/sh install-runme
+    go install github.com/skx/runme@latest
+    ```
 
 If you don't have the toolchain installed, or prefer to fetch a binary, you can download the latest release from the release page:
 
@@ -32,22 +29,22 @@ In the following code-block you'll see three things:
    * `uptime` in this case.
 
 
-```/bin/bash test
-uptime
-```
+    ```/bin/bash test
+    uptime
+    ```
 
 Another block might use the python3 interpreter, by specifying the path to `python3`:
 
-```/usr/bin/python3 home
-import os
-print(os.environ['HOME'])
-```
+    ```/usr/bin/python3 home
+    import os
+    print(os.environ['HOME'])
+    ```
 
 Finally for testing this tool, we can provide another shell block configured with `bash` as the interpreter:
 
-```/bin/bash whoami
-id
-```
+    ```/bin/bash whoami
+    id
+    ```
 
 
 
@@ -57,18 +54,18 @@ id
 
 By default all blocks found will be shown, for example:
 
-```bash
-Shell:/bin/bash  Name:test
-uptime
+    ```bash
+    Shell:/bin/bash  Name:test
+    uptime
 
-Shell:/usr/bin/python3  Name:home
-import os
-print(os.environ['HOME'])
+    Shell:/usr/bin/python3  Name:home
+    import os
+    print(os.environ['HOME'])
 
-Shell:/bin/bash  Name:whoami
-id
+    Shell:/bin/bash  Name:whoami
+    id
 
-```
+    ```
 
 Notice here that only blocks with **both** a shell and a name are listed.
 
